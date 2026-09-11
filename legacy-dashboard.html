@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <title>USDT Operations Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="loading-bar" id="loadingBar" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="index.html" aria-label="USDT Operations Dashboard">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                </span>
+                <span class="brand-text">USDT<span>Ops</span></span>
+            </a>
+
+            <div class="header-right">
+                <div class="wallet-chip" title="Withdrawal wallet address">
+                    <span class="chip-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 12h.01M3 9h18"/></svg>
+                    </span>
+                    <span class="wallet-copy">
+                        <span class="wallet-label">Wallet Address</span>
+                        <span class="wallet-address" id="walletAddress">Loading…</span>
+                    </span>
+                </div>
+
+                <div class="server-status" id="serverStatus" role="status" aria-live="polite">
+                    <span class="status-dot"></span>
+                    <span id="serverText">Server Online</span>
+                </div>
+
+                <a href="admin.html" class="admin-link">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Admin
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container page">
+        <section class="page-heading">
+            <div>
+                <h1>Operations Overview</h1>
+                <p class="page-subtitle">Live USDT processing activity and payout schedule</p>
+            </div>
+            <div class="last-updated">Last updated <span id="lastUpdate">--:--:--</span></div>
+        </section>
+
+        <div class="stats">
+            <article class="stat-card stat-scripts">
+                <div class="stat-top">
+                    <span class="stat-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+                    </span>
+                    <span class="stat-label">Active Scripts</span>
+                </div>
+                <div class="stat-value"><span id="activeCount">0</span><span class="stat-value-dim"> / <span id="totalScripts">45</span></span></div>
+                <div class="stat-sub">processing units online</div>
+            </article>
+
+            <article class="stat-card stat-balance">
+                <div class="stat-top">
+                    <span class="stat-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7 9h10M9 13h6"/></svg>
+                    </span>
+                    <span class="stat-label">Total Balance</span>
+                </div>
+                <div class="stat-value stat-value-lg" id="totalBalance">0.00000000</div>
+                <div class="stat-sub">USDT accumulated</div>
+            </article>
+
+            <article class="stat-card stat-rate">
+                <div class="stat-top">
+                    <span class="stat-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+                    </span>
+                    <span class="stat-label">Generation Rate</span>
+                </div>
+                <div class="stat-value" id="genRate">0.0000</div>
+                <div class="stat-sub">USDT / hour</div>
+            </article>
+
+            <article class="stat-card stat-payout">
+                <div class="stat-top">
+                    <span class="stat-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg>
+                    </span>
+                    <span class="stat-label">Next Payout</span>
+                </div>
+                <div class="stat-value" id="payoutAmount">0.00</div>
+                <div class="stat-sub" id="payoutDate">--</div>
+                <div class="stat-actions">
+                    <button class="btn btn-outline" onclick="requestPayout()">Schedule</button>
+                    <button class="btn btn-accent" onclick="requestInstantPayout()">Instant</button>
+                </div>
+            </article>
+        </div>
+
+        <section class="section">
+            <div class="section-header">
+                <div>
+                    <h2>Scripts Status</h2>
+                    <p class="section-subtitle">Monitor and control your 45 processing scripts</p>
+                </div>
+                <div class="section-actions">
+                    <label class="search-field" aria-label="Filter scripts">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="search" id="scriptSearch" placeholder="Filter scripts…" autocomplete="off">
+                    </label>
+                    <button class="btn btn-danger" onclick="rebootServer()" id="rebootBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+                        Reboot Server
+                    </button>
+                </div>
+            </div>
+            <div class="scripts-grid" id="scriptsGrid">
+                <div class="script-card skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span><span class="skeleton-btn"></span></div>
+                <div class="script-card skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span><span class="skeleton-btn"></span></div>
+                <div class="script-card skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span><span class="skeleton-btn"></span></div>
+                <div class="script-card skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span><span class="skeleton-btn"></span></div>
+            </div>
+            <div class="empty-state" id="scriptsEmpty" hidden>No scripts match your filter.</div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div>
+                    <h2>Upcoming Payouts</h2>
+                    <p class="section-subtitle">Scheduled and processed withdrawals</p>
+                </div>
+            </div>
+            <div class="payouts-container" id="payoutsContainer">
+                <div class="payout-card-user skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span></div>
+                <div class="payout-card-user skeleton"><span class="skeleton-block"></span><span class="skeleton-block short"></span></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p>© <span id="footerYear"></span> USDT Operations Dashboard</p>
+            <a href="admin.html">Admin Panel</a>
+        </div>
+    </footer>
+
+    <!-- Modal for Payout Request -->
+    <div class="modal" id="payoutModal" role="dialog" aria-modal="true" aria-labelledby="payoutModalTitle">
+        <div class="modal-content payout-form-modal">
+            <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+            <div class="modal-icon" aria-hidden="true">💰</div>
+            <div class="modal-title" id="payoutModalTitle">Schedule Withdrawal</div>
+            <p class="modal-subtitle">Choose an amount and a payout date at least 5 days out.</p>
+
+            <div class="wallet-display">
+                <div class="wallet-label">Withdrawal Wallet Address</div>
+                <div class="wallet-address-display" id="withdrawalWallet">Loading…</div>
+            </div>
+
+            <div class="balance-display">
+                <div class="balance-label">Available Balance</div>
+                <div class="balance-amount" id="availableBalance">0.00000000 USDT</div>
+                <div class="balance-hint"><span id="scheduledInfo">Calculating…</span></div>
+            </div>
+
+            <form id="withdrawalForm" class="withdrawal-form" novalidate>
+                <div class="form-field">
+                    <label for="withdrawalAmount">Withdrawal Amount (USDT)</label>
+                    <input type="number" id="withdrawalAmount" min="50" max="1000" step="0.01" placeholder="50 – 1,000" required>
+                    <small>Minimum 50 USDT · Maximum 1,000 USDT · Cannot exceed available balance</small>
+                </div>
+
+                <div class="form-field">
+                    <label for="withdrawalDate">Select Payout Date</label>
+                    <input type="date" id="withdrawalDate" required>
+                    <small>Available dates start 5 days from today</small>
+                </div>
+
+                <div class="form-error" id="withdrawalError" hidden></div>
+                <button type="submit" class="modal-btn-submit">Request Withdrawal</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Instant Withdrawal Modal -->
+    <div class="modal" id="instantPayoutModal" role="dialog" aria-modal="true" aria-labelledby="instantPayoutModalTitle">
+        <div class="modal-content payout-form-modal">
+            <button class="modal-close" onclick="closeInstantModal()" aria-label="Close">×</button>
+            <div class="modal-icon" aria-hidden="true">⚡</div>
+            <div class="modal-title" id="instantPayoutModalTitle">Instant Withdrawal</div>
+            <p class="modal-subtitle">Funds are delivered to your wallet within 24 hours.</p>
+
+            <div class="wallet-display">
+                <div class="wallet-label">Default Wallet Address</div>
+                <div class="wallet-address-display" id="instantWithdrawalWallet">Loading…</div>
+            </div>
+
+            <div class="balance-display">
+                <div class="balance-label">Available for Instant Withdrawal</div>
+                <div class="balance-amount" id="instantAvailableBalance">0.00000000 USDT</div>
+                <div class="balance-hint"><span id="instantScheduledInfo">Calculating…</span></div>
+            </div>
+
+            <form id="instantWithdrawalForm" class="withdrawal-form" novalidate>
+                <input type="text" id="instantWalletAddress" placeholder="Enter wallet address or leave blank for default" maxlength="100" hidden>
+
+                <div class="form-field">
+                    <label for="instantWithdrawalAmount">Withdrawal Amount (USDT)</label>
+                    <input type="number" id="instantWithdrawalAmount" min="50" max="5000" step="0.01" placeholder="50 – 5,000" required>
+                    <small>Minimum 50 USDT · Maximum 5,000 USDT · Payment within 24 hours</small>
+                </div>
+
+                <div class="form-error" id="instantWithdrawalError" hidden></div>
+                <button type="submit" class="modal-btn-submit instant">Withdraw Instantly</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+        <div class="modal-content">
+            <div class="modal-icon success-icon" aria-hidden="true">✓</div>
+            <div class="modal-title" id="successTitle">Withdrawal Successful!</div>
+            <div class="modal-text" id="successMessage">
+                Your withdrawal request has been submitted successfully.<br>
+                Payment will be received to your wallet on the selected date.
+            </div>
+            <button class="modal-btn" onclick="closeSuccessModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal-content">
+            <div class="modal-icon" aria-hidden="true">⚠️</div>
+            <div class="modal-title" id="confirmTitle">Please confirm</div>
+            <div class="modal-text" id="confirmMessage">Are you sure?</div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="confirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reboot Animation Overlay -->
+    <div class="reboot-overlay" id="rebootOverlay" role="dialog" aria-modal="true" aria-label="Rebooting server">
+        <div class="reboot-content">
+            <div class="reboot-spinner"></div>
+            <div class="reboot-text">Rebooting Server…</div>
+            <div class="reboot-progress">
+                <div class="reboot-progress-bar" id="rebootProgress"></div>
+            </div>
+            <div class="reboot-status" id="rebootStatus">Initializing…</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

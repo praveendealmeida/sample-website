@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Login — USDT Strategy</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="auth-body">
+<div class="auth-view">
+  <div class="auth-card">
+    <a class="brand brand-center" href="index.html">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+      <span class="brand-text">USDT<span>Strategy</span></span>
+    </a>
+    <h2>Welcome back</h2>
+    <p class="auth-sub">Sign in to your account to continue.</p>
+    <form id="loginForm">
+      <label>Username or email</label><input type="text" id="loginField" autocomplete="username" required>
+      <label>Password</label><input type="password" id="loginPass" autocomplete="current-password" required>
+      <button class="btn btn-primary" type="submit">Login</button>
+      <p class="form-error" id="loginError"></p>
+    </form>
+    <p class="auth-alt">Don't have an account? <a href="register.html">Register</a></p>
+    <p class="auth-alt"><a href="index.html">← Back to site</a></p>
+  </div>
+</div>
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[2026-09-11 08:17:59]
+To: smoke1@test.local | Subject: Verify your email
+Click to verify your account: http://127.0.0.1:8123/auth_api.php?action=verify&token=c3f5033c83509e3bae635ab45e8f9c51b897a9068d58203cbad712cf1ebc8a90
+----------------------------------------
+[2026-09-11 08:33:22]
+To: depu1@test.local | Subject: Verify your email
+Click to verify your account: http://127.0.0.1:8123/auth_api.php?action=verify&token=308d9aae859a095ba49898aec882187dbb661106678b05bd7e5a13b9b36c3733
+----------------------------------------

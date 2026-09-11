@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Dashboard — USDT Strategy</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="app-sidebar" id="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span><span class="brand-text">USDT<span>Strategy</span></span></a>
+    <nav class="app-nav" id="appNav">
+      <button class="nav-item active" data-section="dashboard">Dashboard</button>
+      <button class="nav-item" data-section="plans">Plans</button>
+      <button class="nav-item" data-section="investments">My Investments</button>
+      <button class="nav-item" data-section="wallet">Deposit</button>
+      <button class="nav-item" data-section="withdraw">Withdraw</button>
+      <button class="nav-item" data-section="transactions">Transactions</button>
+      <button class="nav-item" data-section="referrals">Referrals</button>
+      <button class="nav-item" data-section="profile">Profile & KYC</button>
+      <button class="nav-item" data-section="security">Security</button>
+      <button class="nav-item" data-section="notifications">Notifications</button>
+    </nav>
+    <div class="sidebar-foot">
+      <a href="index.html">← Back to site</a>
+      <button id="logoutBtn" class="btn btn-ghost">Logout</button>
+    </div>
+  </aside>
+  <main class="app-main">
+    <header class="app-topbar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="topbar-right"><span class="top-balance" id="topBalance">0.00 USDT</span><span class="top-user" id="topUser"></span></div>
+    </header>
+    <div class="app-content">
+      <div id="appView"><div id="content"></div></div>
+    </div>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

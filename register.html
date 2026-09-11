@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>Register — USDT Strategy</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="auth-body">
+<div class="auth-view">
+  <div class="auth-card">
+    <a class="brand brand-center" href="index.html">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+      <span class="brand-text">USDT<span>Strategy</span></span>
+    </a>
+    <h2>Create your account</h2>
+    <p class="auth-sub">Register to start investing.</p>
+    <form id="registerForm">
+      <label>Username</label><input type="text" id="regUser" autocomplete="username" required>
+      <label>Email</label><input type="email" id="regEmail" autocomplete="email" required>
+      <label>Password</label><input type="password" id="regPass" autocomplete="new-password" required>
+      <label>Referral code (optional)</label><input type="text" id="regRef" placeholder="e.g. ABC12345">
+      <button class="btn btn-primary" type="submit">Create Account</button>
+      <p class="form-error" id="regError"></p>
+    </form>
+    <p class="auth-alt">Already have an account? <a href="login.html">Login</a></p>
+    <p class="auth-alt"><a href="index.html">← Back to site</a></p>
+  </div>
+</div>
+<script src="register.js"></script>
+</body>
+</html>
