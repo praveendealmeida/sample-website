@@ -1,5 +1,6 @@
 :root { --bg:#f4f6fb; --surface:#fff; --border:#e7ebf3; --border-strong:#d7ddea; --text:#0f172a; --text2:#475569; --muted:#94a3b8; --primary:#2563eb; --primary-dark:#1d4ed8; --emerald:#059669; --emerald-soft:#ecfdf5; --danger:#dc2626; --danger-soft:#fef2f2; --amber:#d97706; --radius:16px; --shadow:0 8px 24px rgba(16,24,40,.07); }
 * { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
 body { font-family:'Inter',-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.55; -webkit-font-smoothing:antialiased; }
 .app-shell { display:flex; min-height:100vh; }
 .app-sidebar { width:250px; background:#0b1220; color:#fff; display:flex; flex-direction:column; position:fixed; inset:0 auto 0 0; z-index:50; padding:22px 16px; }
