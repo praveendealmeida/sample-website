@@ -46,6 +46,18 @@ function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;'
 function num(v,dp=2){ return Number(v||0).toFixed(dp); }
 function setErr(id,m){ const el=document.getElementById(id); if(el) el.textContent=m; }
 
+let toastTimer;
+function showToast(message, isError) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  clearTimeout(toastTimer);
+  t.textContent = message;
+  t.classList.remove('success', 'error');
+  t.classList.add(isError ? 'error' : 'success');
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
 async function renderDashboard() {
   const r = await adminGet('dashboard');
   if (!r.success) { document.getElementById('content').innerHTML='<p class="empty">Unable to load</p>'; return; }
@@ -69,7 +81,7 @@ async function renderPlans() {
   const rows = r.plans.map(p => `<tr><td>${esc(p.name)}</td><td>${num(p.min_amount)}</td><td>${num(p.max_amount)}</td><td>${num(p.return_percent)}%</td><td>${p.duration_days}d</td><td>${esc(p.return_type)}</td><td><span class="badge ${esc(p.status)}">${esc(p.status)}</span></td><td>${p.featured==1?'<span class="badge">Featured</span>':''}</td><td class="row-actions"><button class="btn btn-sm btn-ghost" style="color:var(--primary)" onclick="editPlan(${p.id})">Edit</button><button class="btn btn-sm btn-danger" onclick="delPlan(${p.id})">Delete</button></td></tr>`).join('');
   document.getElementById('content').innerHTML = `
     <div class="panel"><h3>Plans</h3><button class="btn btn-primary btn-sm" onclick="newPlan()">+ New plan</button></div>
-    <div class="panel"><table class="table"><thead><tr><th>Name</th><th>Min</th><th>Max</th><th>Return</th><th>Duration</th><th>Type</th><th>Status</th><th>Featured</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Min</th><th>Max</th><th>Return</th><th>Duration</th><th>Type</th><th>Status</th><th>Featured</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
     <div class="panel" id="planFormWrap" hidden><h3 id="planFormTitle">New plan</h3>
       <form id="planForm" class="admin-form">
         <input type="hidden" id="planId" value="0">
@@ -92,7 +104,7 @@ async function renderPlans() {
 async function savePlan(e) {
   e.preventDefault();
   const res = await adminPost('plan_save', { id:parseInt(document.getElementById('planId').value), name:document.getElementById('pName').value, return_type:document.getElementById('pType').value, min_amount:document.getElementById('pMin').value, max_amount:document.getElementById('pMax').value, return_percent:document.getElementById('pPct').value, duration_days:document.getElementById('pDays').value, status:document.getElementById('pStatus').value, featured:document.getElementById('pFeatured').value, description:document.getElementById('pDesc').value });
-  if (res.success) renderPlans(); else alert(res.error || 'Failed');
+  if (res.success) { showToast('Plan saved'); renderPlans(); } else showToast(res.error || 'Failed', true);
 }
 
 function newPlan() {
@@ -118,7 +130,7 @@ async function renderUsers() {
   const r = await adminGet('users');
   if (!r.success) { document.getElementById('content').innerHTML='<p class="empty">Unable to load</p>'; return; }
   const rows = r.users.map(u => `<tr><td>${esc(u.username)}</td><td>${esc(u.email)}</td><td><span class="badge ${u.email_verified==1?'verified':'unverified'}">${u.email_verified==1?'verified':'unverified'}</span></td><td><span class="badge ${esc(u.kyc_status)}">${esc(u.kyc_status)}</span></td><td><span class="badge ${esc(u.status)}">${esc(u.status)}</span></td><td>${num(u.balance,2)}</td><td class="row-actions"><button class="btn btn-sm btn-ghost" style="color:var(--primary)" onclick="toggleUser(${u.id},'${esc(u.status)}')">${u.status==='active'?'Suspend':'Activate'}</button></td></tr>`).join('');
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>Users</h3><input id="userSearch" placeholder="Search username or email…" style="width:100%;max-width:320px;padding:11px 13px;border:1.5px solid var(--border-strong);border-radius:9px;font-size:14px;margin-bottom:14px;"></div><div class="panel"><table class="table"><thead><tr><th>User</th><th>Email</th><th>Verified</th><th>KYC</th><th>Status</th><th>Balance</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>Users</h3><input id="userSearch" placeholder="Search username or email…" style="width:100%;max-width:320px;padding:11px 13px;border:1.5px solid var(--border-strong);border-radius:9px;font-size:14px;margin-bottom:14px;"></div><div class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>User</th><th>Email</th><th>Verified</th><th>KYC</th><th>Status</th><th>Balance</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   document.getElementById('userSearch').addEventListener('input', async (e) => {
     const q = e.target.value.trim();
     const rr = q ? await adminPost('users', { q }) : await adminGet('users');
@@ -138,7 +150,7 @@ async function renderDeposits() {
   let cur = 'all';
   function draw() {
     const list = cur==='all' ? r.deposits : r.deposits.filter(d => d.status===cur);
-    document.getElementById('depList').innerHTML = '<table class="table"><thead><tr><th>ID</th><th>User</th><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th></th></tr></thead><tbody>' + (list.length ? list.map(d => `<tr><td>${d.id}</td><td>${esc(d.username)}</td><td>${esc(d.network)}</td><td>${num(d.amount)}</td><td style="font-family:monospace;font-size:12px;">${esc(d.transaction_hash||'')}</td><td>${d.confirmation_count}</td><td><span class="badge ${esc(d.status)}">${esc(d.status)}</span></td><td class="row-actions">${(d.status==='pending'||d.status==='confirming') ? `<input type="number" id="cf-${d.id}" placeholder="conf" style="width:62px;padding:6px;border:1.5px solid var(--border-strong);border-radius:7px;"><button class="btn btn-sm btn-ghost" style="color:var(--primary)" onclick="setConfirmations(${d.id})">Set</button><button class="btn btn-sm btn-accent" onclick="reviewDeposit(${d.id},'approve')">Approve</button><button class="btn btn-sm btn-danger" onclick="reviewDeposit(${d.id},'reject')">Reject</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No deposits</td></tr>') + '</tbody></table>';
+    document.getElementById('depList').innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>User</th><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th></th></tr></thead><tbody>' + (list.length ? list.map(d => `<tr><td>${d.id}</td><td>${esc(d.username)}</td><td>${esc(d.network)}</td><td>${num(d.amount)}</td><td style="font-family:monospace;font-size:12px;">${esc(d.transaction_hash||'')}</td><td>${d.confirmation_count}</td><td><span class="badge ${esc(d.status)}">${esc(d.status)}</span></td><td class="row-actions">${(d.status==='pending'||d.status==='confirming') ? `<input type="number" id="cf-${d.id}" placeholder="conf" style="width:62px;padding:6px;border:1.5px solid var(--border-strong);border-radius:7px;"><button class="btn btn-sm btn-ghost" style="color:var(--primary)" onclick="setConfirmations(${d.id})">Set</button><button class="btn btn-sm btn-accent" onclick="reviewDeposit(${d.id},'approve')">Approve</button><button class="btn btn-sm btn-danger" onclick="reviewDeposit(${d.id},'reject')">Reject</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No deposits</td></tr>') + '</tbody></table></div>';
   }
   document.querySelectorAll('.filter-tabs button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.filter-tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); cur = b.getAttribute('data-s'); draw(); }));
   draw();
@@ -148,7 +160,7 @@ async function setConfirmations(id) {
   const inp = document.getElementById('cf-' + id);
   const count = inp ? parseInt(inp.value || '0', 10) : 0;
   const res = await adminPost('deposit_set_confirmations', { id, confirmations: count });
-  if (res.success) renderDeposits(); else alert(res.error || 'Failed');
+  if (res.success) renderDeposits(); else showToast(res.error || 'Failed', true);
 }
 
 async function renderDepositSettings() {
@@ -174,12 +186,12 @@ async function renderDepositSettings() {
   document.getElementById('depSetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const res = await adminPost('deposit_settings_save', { erc20_address:document.getElementById('eAddr').value, erc20_enabled:document.getElementById('eEn').value, bep20_address:document.getElementById('bAddr').value, bep20_enabled:document.getElementById('bEn').value, trc20_address:document.getElementById('tAddr').value, trc20_enabled:document.getElementById('tEn').value, min_deposit:document.getElementById('minDep2').value, required_confirmations:document.getElementById('reqConf').value, verification:document.getElementById('verMode').value });
-    if (res.success) renderDepositSettings(); else alert(res.error || 'Failed');
+    if (res.success) { showToast('Deposit settings saved'); renderDepositSettings(); } else showToast(res.error || 'Failed', true);
   });
 }
 async function reviewDeposit(id, decision) {
   const res = await adminPost('deposit_review', { id, decision });
-  if (res.success) renderDeposits(); else alert(res.error||'Failed');
+  if (res.success) renderDeposits(); else showToast(res.error||'Failed', true);
 }
 
 async function renderWithdrawals() {
@@ -191,25 +203,25 @@ async function renderWithdrawals() {
   let cur = 'all';
   function draw() {
     const list = cur==='all' ? r.withdrawals : r.withdrawals.filter(w => w.status===cur);
-    document.getElementById('wdList').innerHTML = '<table class="table"><thead><tr><th>ID</th><th>User</th><th>Amount</th><th>Wallet</th><th>Status</th><th></th></tr></thead><tbody>' + (list.length ? list.map(w => `<tr><td>${w.id}</td><td>${esc(w.username)}</td><td>${num(w.amount)}</td><td>${esc(w.wallet_address)}</td><td><span class="badge ${esc(w.status)}">${esc(w.status)}</span></td><td class="row-actions">${w.status==='pending' ? `<button class="btn btn-sm btn-accent" onclick="reviewWithdrawal(${w.id},'approve')">Approve</button><button class="btn btn-sm btn-danger" onclick="reviewWithdrawal(${w.id},'reject')">Reject</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No withdrawals</td></tr>') + '</tbody></table>';
+    document.getElementById('wdList').innerHTML = '<div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>User</th><th>Amount</th><th>Wallet</th><th>Status</th><th></th></tr></thead><tbody>' + (list.length ? list.map(w => `<tr><td>${w.id}</td><td>${esc(w.username)}</td><td>${num(w.amount)}</td><td>${esc(w.wallet_address)}</td><td><span class="badge ${esc(w.status)}">${esc(w.status)}</span></td><td class="row-actions">${w.status==='pending' ? `<button class="btn btn-sm btn-accent" onclick="reviewWithdrawal(${w.id},'approve')">Approve</button><button class="btn btn-sm btn-danger" onclick="reviewWithdrawal(${w.id},'reject')">Reject</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No withdrawals</td></tr>') + '</tbody></table></div>';
   }
   document.querySelectorAll('.filter-tabs button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.filter-tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); cur = b.getAttribute('data-s'); draw(); }));
   draw();
 }
 async function reviewWithdrawal(id, decision) {
   const res = await adminPost('withdrawal_review', { id, decision });
-  if (res.success) renderWithdrawals(); else alert(res.error||'Failed');
+  if (res.success) renderWithdrawals(); else showToast(res.error||'Failed', true);
 }
 
 async function renderKyc() {
   const r = await adminGet('kyc_list');
   if (!r.success) { document.getElementById('content').innerHTML='<p class="empty">Unable to load</p>'; return; }
   const rows = r.documents.length ? r.documents.map(d => `<tr><td>${d.id}</td><td>${esc(d.username)}</td><td>${esc(d.doc_type)}</td><td><a href="${esc(d.file_path)}" target="_blank">View</a></td><td><span class="badge ${esc(d.status)}">${esc(d.status)}</span></td><td class="row-actions">${d.status==='pending' ? `<button class="btn btn-sm btn-accent" onclick="reviewKyc(${d.id},'approve')">Approve</button><button class="btn btn-sm btn-danger" onclick="reviewKyc(${d.id},'reject')">Reject</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No KYC submissions</td></tr>';
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>KYC Submissions</h3><table class="table"><thead><tr><th>ID</th><th>User</th><th>Type</th><th>Document</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>KYC Submissions</h3><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>User</th><th>Type</th><th>Document</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 async function reviewKyc(id, decision) {
   const res = await adminPost('kyc_review', { id, decision });
-  if (res.success) renderKyc(); else alert(res.error||'Failed');
+  if (res.success) renderKyc(); else showToast(res.error||'Failed', true);
 }
 
 async function renderReferrals() {
@@ -226,8 +238,8 @@ async function renderReferrals() {
         <button class="btn btn-primary" type="submit">Save</button>
       </form>
     </div>
-    <div class="panel"><h3>Commissions (total: ${num(s.total,4)} USDT)</h3><table class="table"><thead><tr><th>Referrer</th><th>Referred</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  document.getElementById('refForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('referral_save', { enabled:document.getElementById('rEnabled').value, level1:document.getElementById('rL1').value, level2:document.getElementById('rL2').value, level3:document.getElementById('rL3').value }); if (res.success) renderReferrals(); });
+    <div class="panel"><h3>Commissions (total: ${num(s.total,4)} USDT)</h3><div class="table-wrap"><table class="table"><thead><tr><th>Referrer</th><th>Referred</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  document.getElementById('refForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('referral_save', { enabled:document.getElementById('rEnabled').value, level1:document.getElementById('rL1').value, level2:document.getElementById('rL2').value, level3:document.getElementById('rL3').value }); if (res.success) { showToast('Referral settings saved'); renderReferrals(); } else showToast(res.error || 'Failed', true); });
 }
 
 async function renderSettings() {
@@ -257,6 +269,6 @@ async function renderSettings() {
         <button class="btn btn-primary" type="submit">Save SMTP</button>
       </form>
     </div>`;
-  document.getElementById('generalForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('settings_save', { site_name:document.getElementById('siteName').value, currency:document.getElementById('currency').value, min_deposit:document.getElementById('minDep').value, min_withdraw:document.getElementById('minWd').value, withdraw_fee:document.getElementById('wdFee').value, kyc_required:document.getElementById('kycReq').value, maintenance:document.getElementById('maint').value }); if (res.success) renderSettings(); });
-  document.getElementById('smtpForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('settings_save', { smtp_host:document.getElementById('sHost').value, smtp_port:document.getElementById('sPort').value, smtp_user:document.getElementById('sUser').value, smtp_pass:document.getElementById('sPass').value, smtp_from:document.getElementById('sFrom').value }); if (res.success) renderSettings(); });
+  document.getElementById('generalForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('settings_save', { site_name:document.getElementById('siteName').value, currency:document.getElementById('currency').value, min_deposit:document.getElementById('minDep').value, min_withdraw:document.getElementById('minWd').value, withdraw_fee:document.getElementById('wdFee').value, kyc_required:document.getElementById('kycReq').value, maintenance:document.getElementById('maint').value }); if (res.success) { showToast('Settings saved'); renderSettings(); } else showToast(res.error || 'Failed', true); });
+  document.getElementById('smtpForm').addEventListener('submit', async (e) => { e.preventDefault(); const res = await adminPost('settings_save', { smtp_host:document.getElementById('sHost').value, smtp_port:document.getElementById('sPort').value, smtp_user:document.getElementById('sUser').value, smtp_pass:document.getElementById('sPass').value, smtp_from:document.getElementById('sFrom').value }); if (res.success) { showToast('SMTP settings saved'); renderSettings(); } else showToast(res.error || 'Failed', true); });
 }
