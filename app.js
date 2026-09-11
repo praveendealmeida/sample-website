@@ -249,30 +249,90 @@ async function refreshDepositHistory() {
   body.innerHTML = (d.success && d.deposits.length) ? d.deposits.map(x => `<tr><td>${esc(x.network)}</td><td>${num(x.amount)}</td><td>${esc(x.transaction_hash||'')}</td><td>${x.confirmation_count}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No deposits</td></tr>';
 }
 
+let withdrawState = { step: 0, amount: '', wallet: '' };
+
 async function renderWithdraw() {
   const r = await userGet('summary');
   const w = await userGet('withdrawals');
   const rows = (w.success && w.withdrawals.length) ? w.withdrawals.map(x => `<tr><td>${num(x.amount)}</td><td>${esc(x.wallet_address)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No withdrawals</td></tr>';
+  withdrawState = { step: 0, amount: '', wallet: '' };
   document.getElementById('content').innerHTML = `
-    <div class="panel"><h3>Withdraw</h3><p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Available: <strong>${num(r.balance,8)} USDT</strong></p>
-      <form id="withdrawForm" style="display:grid;gap:10px;">
-        <label class="dlabel">Amount (USDT)</label>
-        <input id="wdAmt" type="number" min="0.01" step="0.01" placeholder="e.g. 100" required>
-        <label class="dlabel">USDT wallet address</label>
-        <input id="wdWallet" type="text" placeholder="Paste your USDT wallet address" required>
-        <button class="btn btn-accent" type="submit">Request Withdrawal</button>
-      </form><p class="form-error" id="wdMsg"></p>
+    <div class="panel"><h3>Withdraw</h3><p class="panel-sub">Available: <strong>${num(r.balance,8)} USDT</strong></p>
+      <div id="withdrawStep"></div>
     </div>
-    <div class="panel"><h3>Withdrawal history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = e.target.querySelector('button');
-    btn.disabled = true; btn.textContent = 'Submitting…';
-    const res = await userPost('request_withdrawal', { amount:document.getElementById('wdAmt').value, wallet:document.getElementById('wdWallet').value });
-    setErr('wdMsg', res.success ? res.message : (res.error||'Failed'), res.success);
-    if (res.success) renderWithdraw();
-    else { btn.disabled = false; btn.textContent = 'Request Withdrawal'; }
-  });
+    <div class="panel"><h3>Withdrawal history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody id="wdHistoryBody">${rows}</tbody></table></div></div>`;
+  drawWithdrawStep();
+}
+
+function drawWithdrawStep() {
+  const c = document.getElementById('withdrawStep');
+  const s = withdrawState;
+
+  if (s.step === 0) {
+    c.innerHTML = `
+      <label class="dlabel">Amount (USDT)</label>
+      <input type="number" id="wdAmt" min="0.01" step="0.01" placeholder="e.g. 100" value="${esc(s.amount)}">
+      <label class="dlabel" style="margin-top:14px;">USDT wallet address</label>
+      <input type="text" id="wdWallet" class="dinput" placeholder="Paste your USDT wallet address" value="${esc(s.wallet)}">
+      <p class="form-error" id="wdErr"></p>
+      <button class="btn btn-accent" id="wdNext">Review Withdrawal</button>`;
+    document.getElementById('wdNext').addEventListener('click', () => {
+      const amt = parseFloat(document.getElementById('wdAmt').value);
+      const wallet = document.getElementById('wdWallet').value.trim();
+      if (!amt || amt <= 0) { setErr('wdErr', 'Please enter a valid amount'); return; }
+      if (!wallet) { setErr('wdErr', 'Please enter your wallet address'); return; }
+      withdrawState.amount = amt; withdrawState.wallet = wallet; withdrawState.step = 1;
+      drawWithdrawStep();
+    });
+    return;
+  }
+
+  if (s.step === 1) {
+    c.innerHTML = `
+      <label class="dlabel">Review your withdrawal</label>
+      <div class="summary-rows">
+        <div><span>Amount</span><strong>${num(s.amount)} USDT</strong></div>
+        <div><span>Wallet address</span><strong style="word-break:break-all;">${esc(s.wallet)}</strong></div>
+      </div>
+      <p class="net-warning">Double-check the wallet address — withdrawals cannot be reversed once approved.</p>
+      <p class="form-error" id="wdErr"></p>
+      <div class="step-actions"><button class="btn btn-ghost btn-sm" id="wdBack">Back</button><button class="btn btn-accent" id="wdConfirm">Confirm &amp; Submit</button></div>`;
+    document.getElementById('wdBack').addEventListener('click', () => { withdrawState.step = 0; drawWithdrawStep(); });
+    document.getElementById('wdConfirm').addEventListener('click', async () => {
+      const btn = document.getElementById('wdConfirm');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      const res = await userPost('request_withdrawal', { amount: withdrawState.amount, wallet: withdrawState.wallet });
+      if (res.success) {
+        withdrawState.step = 2; drawWithdrawStep();
+        refreshWithdrawHistory(); refreshTop();
+      } else {
+        btn.disabled = false; btn.textContent = 'Confirm & Submit';
+        setErr('wdErr', res.error || 'Withdrawal failed');
+      }
+    });
+    return;
+  }
+
+  if (s.step === 2) {
+    c.innerHTML = `<div class="deposit-summary">
+        <div class="summary-icon">✓</div>
+        <h4>Withdrawal requested</h4>
+        <div class="summary-rows">
+          <div><span>Amount</span><strong>${num(withdrawState.amount)} USDT</strong></div>
+          <div><span>Wallet address</span><strong style="word-break:break-all;">${esc(withdrawState.wallet)}</strong></div>
+          <div><span>Status</span><strong><span class="badge pending">Pending</span></strong></div>
+        </div>
+        <button class="btn btn-primary" id="wdAgain">Request another withdrawal</button>
+      </div>`;
+    document.getElementById('wdAgain').addEventListener('click', () => renderWithdraw());
+  }
+}
+
+async function refreshWithdrawHistory() {
+  const w = await userGet('withdrawals');
+  const body = document.getElementById('wdHistoryBody');
+  if (!body) return;
+  body.innerHTML = (w.success && w.withdrawals.length) ? w.withdrawals.map(x => `<tr><td>${num(x.amount)}</td><td>${esc(x.wallet_address)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No withdrawals</td></tr>';
 }
 
 async function renderTransactions() {
