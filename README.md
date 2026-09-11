@@ -1,72 +1,77 @@
-# USDT Operations Dashboard - 45 Scripts Version
+# USDT Strategy — Daily Investment Strategy Platform
 
-This is the **45 Scripts** version of the USDT Operations Dashboard.
+A transparent daily-yield investment platform: users register, invest in a
+plan, and watch their balance compound daily; admins manage plans, review
+deposits/withdrawals/KYC, and configure the platform.
 
-## Key Differences from Standard Version:
+## Pages
 
-### Scripts
-- **45 processing scripts** (instead of 14)
-- Organized in 9 groups (Alpha, Beta, Gamma, Delta, Epsilon, Zeta, Eta, Theta, Iota)
-- Each group has 5 scripts
+- **Public site**: `index.html`, `how-it-works.html`, `faq.html`,
+  `contact.html`, `privacy.html`, `terms.html`, `404.html`
+  (styled by `site.css` / `site.js` / `i18n.js` — English, Thai, Khmer)
+- **Auth**: `login.html`, `register.html`
+- **User dashboard**: `dashboard.html` — Dashboard, Plans, My Investments,
+  Deposit, Withdraw, Transactions, Referrals, Profile & KYC, Security,
+  Notifications
+- **Admin panel**: `admin.html` — Dashboard, Plans, Users, Deposits,
+  Deposit Settings, Withdrawals, KYC, Referrals, Settings
 
-### Generation Rate
-- **Default Rate**: 135 USDT/hour (45 scripts × 3 USDT/hour average)
-- **Range**: 90-180 USDT/hour (45 scripts × 2-4 USDT/hour range)
-- **Configurable** in Admin Panel → Auto-Update Settings
+The dashboard and admin panel share `app.css` / their own JS
+(`app.js`, `admin.js`, `login.js`, `register.js`).
 
-### Display
-- Scripts displayed in larger grid
-- All 45 scripts can be individually activated/deactivated
-- Responsive layout adapts to screen size
+## Backend
+
+Plain PHP + MySQL, no framework:
+
+- `config.php` — DB connection + session bootstrap
+- `lib.php` — shared helpers (auth, CSRF, balance credit/debit, referrals)
+- `deposit_service.php` — USDT deposit network config (ERC20/BEP20/TRC20)
+- `auth_api.php` — user register/login/logout/email verification
+- `user_api.php` — everything behind the user dashboard
+- `admin_api.php` — everything behind the admin panel
+- `login.php` — admin login/logout/session check
+- `earnings.php` — **cron job**, credits daily investment profit (see
+  `CRON_SETUP.md` — nothing credits profit automatically without this)
 
 ## Installation
 
-1. **Import Database**
+1. **Import the database**
    ```bash
    mysql -u username -p database_name < database.sql
    ```
 
-2. **Configure Database Connection**
-   Edit `config.php` with your database credentials
-
-3. **Upload Files**
-   Upload all files to your web server
-
-4. **Setup Cron Job**
-   ```bash
-   * * * * * php /path/to/auto_update.php
+2. **Configure the database connection** — edit `config.php`:
+   ```php
+   define('DB_HOST', 'localhost');
+   define('DB_USER', 'your_db_user');
+   define('DB_PASS', 'your_db_password');
+   define('DB_NAME', 'usdt_operations');
    ```
 
-5. **Access the site**
-   - Home / Landing: `https://yourdomain.com/` (or `index.html`)
-   - User Dashboard: `https://yourdomain.com/dashboard.html`
-   - Admin Panel: `https://yourdomain.com/admin.html`
+3. **Upload all files** to your web server (PHP 8+, MySQL/MariaDB).
 
-## Admin Login
-- **Username**: admin
-- **Password**: admin123
+4. **Set up the earnings cron** — see `CRON_SETUP.md`. Without it, invested
+   profit never accrues; everything else works without a cron.
 
-## Features
+5. **Open the site**:
+   - Home: `https://yourdomain.com/`
+   - Register / Login: `/register.html`, `/login.html`
+   - User dashboard: `/dashboard.html`
+   - Admin panel: `/admin.html`
 
-✅ 45 individual processing scripts
-✅ Activate/Deactivate any script
-✅ Real-time balance tracking
-✅ Dynamic generation rate (2-4 USDT/hour per script)
-✅ Schedule withdrawals (5+ days)
-✅ Instant withdrawals (within 24h)
-✅ Admin panel with full control
-✅ Auto-update via cron job
+## Admin login
 
-## Default Stats (All 45 Scripts Active)
+- **Username**: `admin`
+- **Password**: `admin123`
 
-- **Generation Rate**: ~135 USDT/hour
-- **Daily Generation**: ~3,240 USDT/day
-- **Weekly Generation**: ~22,680 USDT/week
-- **Monthly Generation**: ~97,200 USDT/month
+⚠️ Change this password immediately after first login (Admin panel has no
+built-in "change admin password" screen yet — update the `admin_users` row
+directly, or via phpMyAdmin, using `password_hash()`'s output).
 
-Rate varies based on randomization (2-4 USDT/hour per script).
+## Notes
 
-## Support
-
-For issues or questions, refer to QUICKSTART.md and CRON_SETUP.md included in the package.
-"# sample-website" 
+- KYC uploads are stored under `uploads/kyc/`.
+- Deposit addresses and enabled networks are configured per-network from
+  Admin → Deposit Settings — nothing is hardcoded.
+- Referral commissions (up to 3 levels) are configured from
+  Admin → Referrals, and are only paid when a referred user invests.

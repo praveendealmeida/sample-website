@@ -21,14 +21,19 @@ independently-maintained design systems side by side:
 | `site.css` (+ `site.js`, `i18n.js`) | `index.html`, `contact.html`, `faq.html`, `how-it-works.html`, `privacy.html`, `terms.html`, `404.html` | Public marketing site (multilingual: EN/TH/KM) |
 | `app.css` (+ `app.js`, `login.js`, `register.js`, `admin.js`) | `login.html`, `register.html`, `dashboard.html`, `admin.html` | Authenticated app shell (user dashboard + admin panel share this one file) |
 
-### Dead / orphaned files (not linked from any live page)
+### Dead / orphaned files
 
-`style.css`, `script.js`, `admin-style.css`, `admin-script.js`,
-`legacy-admin-style.css`, `legacy-admin-script.js` are only referenced by
-`legacy-admin.html` and `legacy-dashboard.html`, which are themselves not
-linked from anywhere in the live site. Treat these as dead code — do not
-treat them as a source of truth for tokens, and flag for deletion separately
-if/when confirmed.
+Removed. This audit originally flagged `style.css`, `script.js`,
+`admin-style.css`, `admin-script.js`, `legacy-admin-style.css`,
+`legacy-admin-script.js`, `legacy-admin.html`, `legacy-dashboard.html`,
+`legacy-admin_api.php`, `api.php`, plus the "45 processing scripts"
+backend cluster (`auto_update.php`, `generate_usdt.php`,
+`request_withdrawal.php`, `request_instant_withdrawal.php`,
+`update_script.php`, `update_database.sql`) as unreferenced by any live
+page. Confirmed unneeded and deleted in a later pass, along with rewriting
+`database.sql` (it only defined that legacy schema — the current app's
+tables weren't defined anywhere in the repo) and updating `README.md` /
+`QUICKSTART.md` / `CRON_SETUP.md` to describe the current app instead.
 
 ## 2. Color tokens
 
