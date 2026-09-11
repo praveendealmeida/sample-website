@@ -28,7 +28,7 @@ async function login(e) {
   const r = await fetch(LOGIN_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ username:document.getElementById('adminUser').value.trim(), password:document.getElementById('adminPass').value }) }).then(x=>x.json());
   if (r.success) { showAdmin(); switchSection('dashboard'); } else setErr('adminLoginError', r.error || 'Login failed');
 }
-async function logout() { await fetch(LOGIN_URL + '?action=logout'); showAuth(); }
+async function logout() { try { await fetch(LOGIN_URL + '?action=logout'); } catch (e) {} showAuth(); }
 
 async function adminPost(action, data) { const r = await fetch(ADMIN_API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({ action, csrf }, data||{})) }); return r.json(); }
 async function adminGet(action) { const r = await fetch(ADMIN_API + '?action=' + action); return r.json(); }

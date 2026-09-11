@@ -101,10 +101,14 @@ async function renderPlans() {
       const amt = card.querySelector('input').value;
       btn.disabled = true; btn.textContent = 'Investing…';
       const res = await userPost('invest', { plan_id: p.id, amount: amt });
-      btn.disabled = false; btn.textContent = 'Invest';
       msg.classList.toggle('success', !!res.success);
       msg.textContent = res.success ? ('Invested! Daily profit: ' + num(res.investment.daily_profit, 8) + ' USDT') : (res.error || 'Failed');
-      if (res.success) setTimeout(renderPlans, 1200);
+      if (res.success) {
+        btn.textContent = 'Invested';
+        setTimeout(() => { if (document.body.contains(card)) renderPlans(); }, 1200);
+      } else {
+        btn.disabled = false; btn.textContent = 'Invest';
+      }
     });
   });
 }
