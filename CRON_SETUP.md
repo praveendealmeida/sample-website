@@ -1,158 +1,104 @@
 # CRON JOB SETUP GUIDE
 
-This guide shows you how to set up automatic USDT balance updates.
+## What is `earnings.php`?
 
-## What is the Auto Update Script?
+`earnings.php` is the script that actually credits daily profit on active
+investments and returns principal at maturity. **Nothing in the app credits
+profit automatically on its own** — without this cron running on your
+server, every investment's "Profit" and the dashboard's "Total Profit"
+will stay at 0 forever, even though everything else (investing, deposits,
+withdrawals) works fine.
 
-The `auto_update.php` script automatically adds USDT to your balance based on how many scripts are active. It runs in the background at scheduled intervals.
+For every active investment it:
+- Credits each **missed day** of profit since it last ran (so any cron
+  interval works — running it once a day, or once an hour, produces the
+  same total; it just catches up), using the daily rate snapshotted on the
+  investment at the time it was made.
+- Marks an investment `matured` and returns the principal (plus final
+  profit, for "at end" plans) once its `end_date` is reached.
+- Writes a summary line to `earnings.log` on every run.
 
-**Default Settings:**
-- Each active script generates a random **2–4 USDT per hour**
-- The rate range is configured in Admin Panel → Auto-Update Settings
-- The script accrues based on elapsed time, so any cron interval works
+Run it **once per day**, ideally in the early morning (e.g. 00:05).
 
 ## Setup Instructions
 
 ### Option 1: Linux/Mac Cron Job
 
-1. **Open crontab editor:**
 ```bash
 crontab -e
 ```
 
-2. **Add one of these lines** (choose your preferred frequency):
-
-**Every 1 minute (recommended):**
+Add:
 ```
-* * * * * php /full/path/to/auto_update.php
-```
-
-**Every 5 minutes:**
-```
-*/5 * * * * php /full/path/to/auto_update.php
-```
-
-**Every 10 minutes:**
-```
-*/10 * * * * php /full/path/to/auto_update.php
-```
-
-**Every hour:**
-```
-0 * * * * php /full/path/to/auto_update.php
-```
-
-3. **Save and exit** (Ctrl+X, then Y, then Enter in nano)
-
-4. **Verify it's added:**
-```bash
-crontab -l
+5 0 * * * php /full/path/to/earnings.php
 ```
 
 ### Option 2: Windows Task Scheduler
 
-1. **Open Task Scheduler** (search in Start Menu)
-
-2. **Create Basic Task:**
-   - Name: "USDT Auto Update"
-   - Description: "Automatically updates USDT balance"
-
-3. **Set Trigger:**
-   - For every minute: Set to repeat every 1 minute
-   - For every 5 minutes: Set to repeat every 5 minutes
-   - For every hour: Set to run hourly
-
-4. **Set Action:**
+1. Open Task Scheduler → Create Basic Task
+2. Name: "USDT Strategy — Daily Earnings"
+3. Trigger: Daily, at your chosen time (e.g. 00:05)
+4. Action:
    - Program/script: `C:\xampp\php\php.exe`
-   - Arguments: `C:\xampp\htdocs\usdt-dashboard\auto_update.php`
-   - Start in: `C:\xampp\htdocs\usdt-dashboard\`
-
-5. **Finish** and test by waiting for the next interval
+   - Arguments: `C:\xampp\htdocs\usdt-strategy\earnings.php`
+   - Start in: `C:\xampp\htdocs\usdt-strategy\`
 
 ### Option 3: cPanel Cron Jobs (Shared Hosting)
 
-1. Login to cPanel
-2. Find "Cron Jobs" in Advanced section
-3. Select frequency: **Every minute** or **Every 5 minutes**
-4. Enter command:
+1. Login to cPanel → Cron Jobs
+2. Common Settings: **Once Per Day (0 5 * * *)**
+3. Command:
 ```bash
-php /home/yourusername/public_html/usdt-dashboard/auto_update.php
+php /home/yourusername/public_html/usdt-strategy/earnings.php
 ```
-5. Click "Add New Cron Job"
+4. Add New Cron Job
 
-### Option 4: Manual Testing
+### Manual Testing
 
-Test the script manually first:
+Run it by hand first to confirm it works before scheduling it:
 
-**Linux/Mac:**
 ```bash
-php /path/to/auto_update.php
+php /path/to/earnings.php
 ```
 
-**Windows:**
+It prints (and logs) a line like:
+```
+[2026-01-15 00:05:01] Earnings run complete. Credited 3 day(s), matured 1 investment(s).
+```
+
+## Checking if it's working
+
+1. **Check the log:**
 ```bash
-C:\xampp\php\php.exe C:\xampp\htdocs\usdt-dashboard\auto_update.php
+cat /path/to/earnings.log
 ```
-
-## Adjusting Update Amount
-
-Rates are now managed from the Admin Panel (Auto-Update Settings), not in code.
-
-1. Go to **Admin Panel → Auto-Update Settings**
-2. Set the **Minimum Rate** and **Maximum Rate** (USDT per hour per script)
-3. Save — the next cron run uses the new range
-
-**Example:**
-- Min 2 USDT / Max 4 USDT = each active script generates 2–4 USDT per hour
-- 10 active scripts = 20–40 USDT per hour total
-
-## Checking if Cron is Working
-
-1. **Check log file:**
-```bash
-cat /path/to/usdt-dashboard/auto_update.log
-```
-
-The log shows every update with a timestamp:
-```
-[2024-12-15 10:00:01] SUCCESS: Added 0.031234 USDT (1.00 min, 10 active scripts @ 2-4 USDT/hr each).
-[2024-12-15 10:01:01] SUCCESS: Added 0.029871 USDT (1.00 min, 10 active scripts @ 2-4 USDT/hr each).
-```
-
-2. **Watch the dashboard:**
-- Refresh your dashboard
-- Watch the "Total Balance" increase automatically
+2. **Watch a test investment**: invest on the dashboard, run `earnings.php`
+   manually, then reload the dashboard — "Total Profit" and the
+   investment's "Profit" column should increase.
 
 ## Troubleshooting
 
-### Cron not running:
 ```bash
 # Check cron service (Linux)
 sudo service cron status
 
 # Check cron logs
 grep CRON /var/log/syslog
-```
 
-### Script errors:
-```bash
-# Run manually to see errors
-php /path/to/auto_update.php
+# Run manually to see PHP errors directly
+php /path/to/earnings.php
 
 # Check PHP error log
 tail -f /var/log/php_errors.log
 ```
 
-### Permission issues (Linux):
+### Permission issues (Linux)
 ```bash
-# Give execute permission
-chmod +x /path/to/auto_update.php
-
-# Make log writable
-chmod 666 /path/to/auto_update.log
+chmod +x /path/to/earnings.php
+chmod 666 /path/to/earnings.log
 ```
 
-## Understanding Cron Syntax
+## Understanding cron syntax
 
 ```
 * * * * * command
@@ -164,42 +110,10 @@ chmod 666 /path/to/auto_update.log
 └─────────── Minute (0-59)
 ```
 
-**Examples:**
-- `* * * * *` = Every minute
-- `*/5 * * * *` = Every 5 minutes
-- `0 * * * *` = Every hour
-- `0 0 * * *` = Every day at midnight
-- `0 */6 * * *` = Every 6 hours
+`5 0 * * *` = every day at 00:05.
 
-## Stopping Auto Updates
+## Stopping the cron
 
-**Linux/Mac:**
-```bash
-crontab -e
-# Delete the line or comment it out with #
-```
-
-**Windows:**
-- Open Task Scheduler
-- Find "USDT Auto Update"
-- Right-click → Disable or Delete
-
-**cPanel:**
-- Go to Cron Jobs
-- Click delete button next to the job
-
-## Advanced: Multiple Update Rates
-
-You can run different amounts at different times:
-
-```bash
-# Small updates every minute
-* * * * * php /path/to/auto_update.php
-
-# Bonus every hour
-0 * * * * php /path/to/bonus_update.php
-```
-
----
-
-**Questions?** Check the main README.md or test manually first!
+**Linux/Mac:** `crontab -e`, delete or comment out the line.
+**Windows:** Task Scheduler → find the task → Disable or Delete.
+**cPanel:** Cron Jobs → delete button next to the job.

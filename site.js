@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.faq-item').forEach((item) => {
     const q = item.querySelector('.faq-q');
-    if (q) q.addEventListener('click', () => item.classList.toggle('open'));
+    if (q) q.addEventListener('click', () => {
+      const open = item.classList.toggle('open');
+      q.setAttribute('aria-expanded', String(open));
+    });
   });
 
   const form = document.getElementById('contactForm');
@@ -34,12 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const fallbackError = 'Please fill in all fields.';
       if (!name || !email || !message) {
         note.textContent = (I18N[lang] && I18N[lang]['contact.formError']) || fallbackError;
+        note.classList.add('error');
         return;
       }
       const to = I18N[lang]['contact.email'] || 'support@example.com';
       const subject = encodeURIComponent('Contact request from ' + name);
       const body = encodeURIComponent(message + '\n\n— ' + name + ' (' + email + ')');
       window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
+      note.classList.remove('error');
       note.textContent = I18N[lang]['contact.formNote'] || '';
     });
   }

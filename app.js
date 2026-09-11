@@ -6,6 +6,7 @@ let me = null;
 const SECTION_TITLES = { dashboard:'Dashboard', plans:'Investment Plans', investments:'My Investments', wallet:'Deposit', withdraw:'Withdraw', transactions:'Transactions', referrals:'Referrals', profile:'Profile & KYC', security:'Security', notifications:'Notifications' };
 
 document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 
 async function init() {
   wireNav(); wireMenu();
@@ -39,7 +40,7 @@ async function refreshTop() {
 }
 
 async function logout() {
-  await fetch(AUTH_API + '?action=logout');
+  try { await fetch(AUTH_API + '?action=logout'); } catch (e) {}
   window.location.replace('login.html');
 }
 
@@ -58,7 +59,7 @@ function switchSection(name) {
 
 function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function num(v, dp=2) { return Number(v || 0).toFixed(dp); }
-function setErr(id, m) { const el = document.getElementById(id); if (el) el.textContent = m; }
+function setErr(id, m, success) { const el = document.getElementById(id); if (el) { el.textContent = m; el.classList.toggle('success', !!success); } }
 
 async function renderDashboard() {
   const r = await userGet('summary');
@@ -75,7 +76,7 @@ async function renderDashboard() {
       <div class="stat-card"><span>Total Invested</span><strong>${num(r.total_invested)}</strong><em>USDT</em></div>
       <div class="stat-card"><span>Total Profit</span><strong>${num(r.total_profit, 8)}</strong><em>USDT</em></div>
     </div>
-    <div class="panel"><h3>Recent transactions</h3><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Details</th><th>Date</th></tr></thead><tbody>${tx}</tbody></table></div>`;
+    <div class="panel"><h3>Recent transactions</h3><div class="table-wrap"><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Details</th><th>Date</th></tr></thead><tbody>${tx}</tbody></table></div></div>`;
   refreshTop();
 }
 
@@ -90,17 +91,24 @@ async function renderPlans() {
       <div class="plan-meta"><span>Min ${num(p.min_amount)}</span><span>Max ${num(p.max_amount)}</span><span>${p.duration_days} days</span></div>
       <p style="color:var(--text2);font-size:13px;margin-bottom:10px;">${esc(p.description||'')}</p>
       <div class="plan-invest"><input type="number" min="${num(p.min_amount)}" placeholder="Amount"><button class="btn btn-primary btn-sm">Invest</button></div>
+      <p class="form-error plan-msg"></p>
     </div>`).join('') + '</div>';
   document.querySelectorAll('.plan-card').forEach((card, i) => {
     const p = r.plans[i];
     const btn = card.querySelector('button');
+    const msg = card.querySelector('.plan-msg');
     btn.addEventListener('click', async () => {
       const amt = card.querySelector('input').value;
       btn.disabled = true; btn.textContent = 'Investing…';
       const res = await userPost('invest', { plan_id: p.id, amount: amt });
-      btn.disabled = false; btn.textContent = 'Invest';
-      alert(res.success ? ('Invested! Daily profit: ' + num(res.investment.daily_profit, 8) + ' USDT') : (res.error || 'Failed'));
-      if (res.success) renderPlans();
+      msg.classList.toggle('success', !!res.success);
+      msg.textContent = res.success ? ('Invested! Daily profit: ' + num(res.investment.daily_profit, 8) + ' USDT') : (res.error || 'Failed');
+      if (res.success) {
+        btn.textContent = 'Invested';
+        setTimeout(() => { if (document.body.contains(card)) renderPlans(); }, 1200);
+      } else {
+        btn.disabled = false; btn.textContent = 'Invest';
+      }
     });
   });
 }
@@ -108,8 +116,8 @@ async function renderPlans() {
 async function renderInvestments() {
   const r = await userGet('my_investments');
   if (!r.success || !r.investments.length) { document.getElementById('content').innerHTML = '<p class="empty">No investments yet</p>'; return; }
-  document.getElementById('content').innerHTML = '<div class="panel"><h3>My Investments</h3><table class="table"><thead><tr><th>Plan</th><th>Amount</th><th>Daily</th><th>Profit</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>' +
-    r.investments.map(x => `<tr><td>${esc(x.plan_name||x.plan_id)}</td><td>${num(x.amount)}</td><td>${num(x.daily_profit,8)}</td><td>${num(x.total_profit_accrued,8)}</td><td>${esc(x.start_date)}</td><td>${esc(x.end_date)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td></tr>`).join('') + '</tbody></table></div>';
+  document.getElementById('content').innerHTML = '<div class="panel"><h3>My Investments</h3><div class="table-wrap"><table class="table"><thead><tr><th>Plan</th><th>Amount</th><th>Daily</th><th>Profit</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>' +
+    r.investments.map(x => `<tr><td>${esc(x.plan_name||x.plan_id)}</td><td>${num(x.amount)}</td><td>${num(x.daily_profit,8)}</td><td>${num(x.total_profit_accrued,8)}</td><td>${esc(x.start_date)}</td><td>${esc(x.end_date)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td></tr>`).join('') + '</tbody></table></div></div>';
 }
 
 let depositState = { step: 0, amount: '', network: '', networks: [], hash: '' };
@@ -136,7 +144,7 @@ async function renderWallet() {
       </div>
       <div id="depositStep"></div>
     </div>
-    <div class="panel"><h3>Deposit history</h3><table class="table"><thead><tr><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th>Date</th></tr></thead><tbody id="depHistoryBody">${histRows}</tbody></table></div>`;
+    <div class="panel"><h3>Deposit history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th>Date</th></tr></thead><tbody id="depHistoryBody">${histRows}</tbody></table></div></div>`;
   drawDepositStep();
 }
 function drawDepositStep() {
@@ -241,31 +249,96 @@ async function refreshDepositHistory() {
   body.innerHTML = (d.success && d.deposits.length) ? d.deposits.map(x => `<tr><td>${esc(x.network)}</td><td>${num(x.amount)}</td><td>${esc(x.transaction_hash||'')}</td><td>${x.confirmation_count}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No deposits</td></tr>';
 }
 
+let withdrawState = { step: 0, amount: '', wallet: '' };
+
 async function renderWithdraw() {
   const r = await userGet('summary');
   const w = await userGet('withdrawals');
   const rows = (w.success && w.withdrawals.length) ? w.withdrawals.map(x => `<tr><td>${num(x.amount)}</td><td>${esc(x.wallet_address)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No withdrawals</td></tr>';
+  withdrawState = { step: 0, amount: '', wallet: '' };
   document.getElementById('content').innerHTML = `
-    <div class="panel"><h3>Withdraw</h3><p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Available: <strong>${num(r.balance,8)} USDT</strong></p>
-      <form id="withdrawForm" style="display:grid;gap:10px;">
-        <input id="wdAmt" type="number" placeholder="Amount (USDT)" required>
-        <input id="wdWallet" type="text" placeholder="USDT wallet address" required>
-        <button class="btn btn-accent" type="submit">Request Withdrawal</button>
-      </form><p class="form-error" id="wdMsg"></p>
+    <div class="panel"><h3>Withdraw</h3><p class="panel-sub">Available: <strong>${num(r.balance,8)} USDT</strong></p>
+      <div id="withdrawStep"></div>
     </div>
-    <div class="panel"><h3>Withdrawal history</h3><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const res = await userPost('request_withdrawal', { amount:document.getElementById('wdAmt').value, wallet:document.getElementById('wdWallet').value });
-    setErr('wdMsg', res.success ? res.message : (res.error||'Failed'));
-    if (res.success) renderWithdraw();
-  });
+    <div class="panel"><h3>Withdrawal history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody id="wdHistoryBody">${rows}</tbody></table></div></div>`;
+  drawWithdrawStep();
+}
+
+function drawWithdrawStep() {
+  const c = document.getElementById('withdrawStep');
+  const s = withdrawState;
+
+  if (s.step === 0) {
+    c.innerHTML = `
+      <label class="dlabel">Amount (USDT)</label>
+      <input type="number" id="wdAmt" min="0.01" step="0.01" placeholder="e.g. 100" value="${esc(s.amount)}">
+      <label class="dlabel" style="margin-top:14px;">USDT wallet address</label>
+      <input type="text" id="wdWallet" class="dinput" placeholder="Paste your USDT wallet address" value="${esc(s.wallet)}">
+      <p class="form-error" id="wdErr"></p>
+      <button class="btn btn-accent" id="wdNext">Review Withdrawal</button>`;
+    document.getElementById('wdNext').addEventListener('click', () => {
+      const amt = parseFloat(document.getElementById('wdAmt').value);
+      const wallet = document.getElementById('wdWallet').value.trim();
+      if (!amt || amt <= 0) { setErr('wdErr', 'Please enter a valid amount'); return; }
+      if (!wallet) { setErr('wdErr', 'Please enter your wallet address'); return; }
+      withdrawState.amount = amt; withdrawState.wallet = wallet; withdrawState.step = 1;
+      drawWithdrawStep();
+    });
+    return;
+  }
+
+  if (s.step === 1) {
+    c.innerHTML = `
+      <label class="dlabel">Review your withdrawal</label>
+      <div class="summary-rows">
+        <div><span>Amount</span><strong>${num(s.amount)} USDT</strong></div>
+        <div><span>Wallet address</span><strong style="word-break:break-all;">${esc(s.wallet)}</strong></div>
+      </div>
+      <p class="net-warning">Double-check the wallet address — withdrawals cannot be reversed once approved.</p>
+      <p class="form-error" id="wdErr"></p>
+      <div class="step-actions"><button class="btn btn-ghost btn-sm" id="wdBack">Back</button><button class="btn btn-accent" id="wdConfirm">Confirm &amp; Submit</button></div>`;
+    document.getElementById('wdBack').addEventListener('click', () => { withdrawState.step = 0; drawWithdrawStep(); });
+    document.getElementById('wdConfirm').addEventListener('click', async () => {
+      const btn = document.getElementById('wdConfirm');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      const res = await userPost('request_withdrawal', { amount: withdrawState.amount, wallet: withdrawState.wallet });
+      if (res.success) {
+        withdrawState.step = 2; drawWithdrawStep();
+        refreshWithdrawHistory(); refreshTop();
+      } else {
+        btn.disabled = false; btn.textContent = 'Confirm & Submit';
+        setErr('wdErr', res.error || 'Withdrawal failed');
+      }
+    });
+    return;
+  }
+
+  if (s.step === 2) {
+    c.innerHTML = `<div class="deposit-summary">
+        <div class="summary-icon">✓</div>
+        <h4>Withdrawal requested</h4>
+        <div class="summary-rows">
+          <div><span>Amount</span><strong>${num(withdrawState.amount)} USDT</strong></div>
+          <div><span>Wallet address</span><strong style="word-break:break-all;">${esc(withdrawState.wallet)}</strong></div>
+          <div><span>Status</span><strong><span class="badge pending">Pending</span></strong></div>
+        </div>
+        <button class="btn btn-primary" id="wdAgain">Request another withdrawal</button>
+      </div>`;
+    document.getElementById('wdAgain').addEventListener('click', () => renderWithdraw());
+  }
+}
+
+async function refreshWithdrawHistory() {
+  const w = await userGet('withdrawals');
+  const body = document.getElementById('wdHistoryBody');
+  if (!body) return;
+  body.innerHTML = (w.success && w.withdrawals.length) ? w.withdrawals.map(x => `<tr><td>${num(x.amount)}</td><td>${esc(x.wallet_address)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No withdrawals</td></tr>';
 }
 
 async function renderTransactions() {
   const r = await userGet('transactions');
   const rows = (r.success && r.transactions.length) ? r.transactions.map(x => `<tr><td><span class="badge ${esc(x.type)}">${esc(x.type)}</span></td><td>${num(x.amount,8)}</td><td>${num(x.balance_after,8)}</td><td>${esc(x.description||'')}</td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>';
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>Transaction history</h3><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Balance</th><th>Details</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>Transaction history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Balance</th><th>Details</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 async function renderReferrals() {
@@ -279,8 +352,8 @@ async function renderReferrals() {
       <div class="stat-card"><span>Referral Earnings</span><strong>${num(r.referral_earned,8)}</strong><em>USDT</em></div>
     </div>
     <div class="panel"><h3>Your referral link</h3><div class="referral-link"><input id="refLink" value="${esc(r.referral_link)}" readonly><button class="btn btn-primary btn-sm" id="copyRef">Copy</button></div><p style="color:var(--text2);font-size:13px;">Code: <strong>${esc(r.referral_code)}</strong></p></div>
-    <div class="panel"><h3>Commission history</h3><table class="table"><thead><tr><th>From user</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${comm}</tbody></table></div>
-    <div class="panel"><h3>Referred users</h3><table class="table"><thead><tr><th>Username</th><th>Joined</th></tr></thead><tbody>${users}</tbody></table></div>`;
+    <div class="panel"><h3>Commission history</h3><div class="table-wrap"><table class="table"><thead><tr><th>From user</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${comm}</tbody></table></div></div>
+    <div class="panel"><h3>Referred users</h3><div class="table-wrap"><table class="table"><thead><tr><th>Username</th><th>Joined</th></tr></thead><tbody>${users}</tbody></table></div></div>`;
   document.getElementById('copyRef').addEventListener('click', () => { navigator.clipboard.writeText(r.referral_link); });
 }
 
@@ -307,19 +380,25 @@ async function renderProfile() {
     </div>`;
   document.getElementById('walletForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Saving…';
     const res = await userPost('update_profile', { wallet: document.getElementById('walletAddr').value });
-    setErr('walletMsg', res.success ? 'Saved' : (res.error||'Failed'));
+    btn.disabled = false; btn.textContent = 'Save Wallet';
+    setErr('walletMsg', res.success ? 'Saved' : (res.error||'Failed'), res.success);
   });
   document.getElementById('kycForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = document.getElementById('kycFile').files[0];
     if (!file) return;
+    const btn = e.target.querySelector('button');
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = String(reader.result).split(',')[1];
+      btn.disabled = true; btn.textContent = 'Submitting…';
       const res = await userPost('kyc_submit', { doc_type: document.getElementById('kycType').value, filename: file.name, file: base64 });
-      setErr('kycMsg', res.success ? res.message : (res.error||'Failed'));
+      setErr('kycMsg', res.success ? res.message : (res.error||'Failed'), res.success);
       if (res.success) renderProfile();
+      else { btn.disabled = false; btn.textContent = 'Submit KYC'; }
     };
     reader.readAsDataURL(file);
   });
@@ -334,8 +413,11 @@ async function renderSecurity() {
     </form><p class="form-error" id="pwMsg"></p></div>`;
   document.getElementById('pwForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Updating…';
     const res = await userPost('change_password', { old_password:document.getElementById('oldPass').value, new_password:document.getElementById('newPass').value });
-    setErr('pwMsg', res.success ? res.message : (res.error||'Failed'));
+    btn.disabled = false; btn.textContent = 'Update Password';
+    setErr('pwMsg', res.success ? res.message : (res.error||'Failed'), res.success);
     if (res.success) document.getElementById('pwForm').reset();
   });
 }
@@ -343,6 +425,6 @@ async function renderSecurity() {
 async function renderNotifications() {
   const r = await userGet('notifications');
   const rows = (r.success && r.notifications.length) ? r.notifications.map(x => `<tr><td><strong>${esc(x.title)}</strong><br><span style="color:var(--text2)">${esc(x.message||'')}</span></td><td>${x.is_read==1?'Read':'New'}</td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No notifications</td></tr>';
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>Notifications</h3><table class="table"><thead><tr><th>Message</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div><button class="btn btn-primary btn-sm" id="markRead">Mark all read</button>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>Notifications</h3><div class="table-wrap"><table class="table"><thead><tr><th>Message</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div><button class="btn btn-primary btn-sm" id="markRead">Mark all read</button>`;
   document.getElementById('markRead').addEventListener('click', async () => { await userPost('notifications_read'); renderNotifications(); });
 }

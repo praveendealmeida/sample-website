@@ -2,113 +2,95 @@
 
 ## Setup in 3 Steps
 
-### Step 1: Import Database
+### Step 1: Import the database
 ```bash
 mysql -u root -p < database.sql
 ```
-Or use phpMyAdmin to import `database.sql`
+Or use phpMyAdmin to import `database.sql`.
 
-### Step 2: Edit config.php
+### Step 2: Edit `config.php`
 ```php
 define('DB_USER', 'root');        // Your username
 define('DB_PASS', '');            // Your password
+define('DB_NAME', 'usdt_operations');
 ```
 
 ### Step 3: Open the site
 ```
-http://localhost/usdt-dashboard/              → Home / landing page
-http://localhost/usdt-dashboard/dashboard.html → Live dashboard
-http://localhost/usdt-dashboard/admin.html     → Admin panel
+http://localhost/usdt-strategy/                → Home / landing page
+http://localhost/usdt-strategy/register.html    → Create an account
+http://localhost/usdt-strategy/dashboard.html   → User dashboard
+http://localhost/usdt-strategy/admin.html       → Admin panel
 ```
 
 ## 🔑 Admin Access
 
-**URL:** `http://localhost/usdt-dashboard/admin.html`
+**URL:** `http://localhost/usdt-strategy/admin.html`
 
 **Default Login:**
 - Username: `admin`
 - Password: `admin123`
 
-⚠️ Change password after first login!
+⚠️ Change the password after first login (see README.md).
 
-## 📊 What You Can Adjust in Admin Panel
+## ⏰ Don't forget the earnings cron
 
-✅ **Total Balance** - Change accumulated USDT amount  
-✅ **Generation Rate** - Set USDT/hour rate  
-✅ **Server Status** - Set online/offline + response time  
-✅ **Scripts** - Toggle any of 45 scripts on/off  
-✅ **Payout** - Set next payout amount and date  
+Investment profit is **not** credited automatically — you must schedule
+`earnings.php` to run once a day. See `CRON_SETUP.md`. Everything else
+(register, invest, deposit, withdraw, KYC, referrals) works without it.
+
+## 📊 What you can manage from the Admin Panel
+
+✅ **Plans** — create/edit/delete investment plans, mark one "Popular"
+✅ **Users** — search, view, suspend/activate accounts
+✅ **Deposits** — review pending deposits, set confirmations, approve/reject
+✅ **Deposit Settings** — per-network (ERC20/BEP20/TRC20) address + toggle
+✅ **Withdrawals** — approve/reject pending withdrawal requests
+✅ **KYC** — review submitted ID documents, approve/reject
+✅ **Referrals** — enable/disable, set 3-level commission percentages
+✅ **Settings** — site name, currency, deposit/withdraw minimums, fees,
+   KYC requirement, maintenance mode, SMTP
 
 ## 📁 Files Overview
 
-**User Dashboard:**
-- `index.html` - Main dashboard
-- `style.css` - Dashboard styles
-- `script.js` - Dashboard logic
+**Public site:** `index.html`, `how-it-works.html`, `faq.html`,
+`contact.html`, `privacy.html`, `terms.html`, `404.html` + `site.css` /
+`site.js` / `i18n.js`
 
-**Admin Panel:**
-- `admin.html` - Admin interface
-- `admin-style.css` - Admin styles
-- `admin-script.js` - Admin logic
+**Auth:** `login.html` / `login.js`, `register.html` / `register.js`
 
-**Backend:**
-- `config.php` - Database settings
-- `api.php` - Public data endpoint
-- `admin_api.php` - Admin operations
-- `login.php` - Authentication
-- `database.sql` - Database schema
+**User dashboard:** `dashboard.html` + `app.css` + `app.js`
 
-## 🎨 Design Features
+**Admin panel:** `admin.html` + `app.css` (shared with the dashboard) +
+`admin.js`
 
-- Clean, minimal interface (no complex animations)
-- Simple white cards on light background
-- Easy to read typography (Inter font)
-- Mobile responsive
-- Auto-refresh every 5 seconds
+**Backend:** `config.php`, `lib.php`, `deposit_service.php`, `auth_api.php`,
+`user_api.php`, `admin_api.php`, `login.php`, `earnings.php` (cron),
+`database.sql`
 
 ## 🔧 Common Tasks
 
-### Change Admin Password
+### Change the admin password
 ```sql
--- In phpMyAdmin or MySQL:
-UPDATE admin_users 
-SET password = '$2y$10$YOUR_NEW_HASH_HERE' 
+UPDATE admin_users
+SET password = '$2y$10$YOUR_NEW_HASH_HERE'
 WHERE username = 'admin';
 ```
 
-Generate hash in PHP:
+Generate the hash in PHP:
 ```php
 <?php echo password_hash('your_new_password', PASSWORD_DEFAULT); ?>
 ```
 
-### Add More Scripts
-```sql
-INSERT INTO processing_scripts (script_name, script_number, is_active, status) 
-VALUES ('Script Omega', 15, FALSE, 'inactive');
-```
+### Add another investment plan
 
-### Change Update Speed
-Edit `script.js`, line 2:
-```javascript
-const UPDATE_INTERVAL = 5000; // 5 seconds (change to any value)
-```
+Use Admin → Plans → "+ New plan" — no SQL needed.
 
-## ⚠️ Important Notes
+## 📞 Need help?
 
-1. **No "mining" terminology** - Uses "operations" and "processing" instead
-2. **Simple design** - Clean cards, no flashy effects
-3. **Admin control** - All values editable from admin panel
-4. **Real-time** - Dashboard updates automatically every 5 seconds
-5. **Secure** - Admin panel requires login
-
-## 📞 Need Help?
-
-Check the full `README.md` for:
-- Detailed installation
-- API documentation
-- Security recommendations
-- Troubleshooting guide
+See `README.md` for the full backend/file overview, and `CRON_SETUP.md`
+for scheduling the daily earnings cron.
 
 ---
 
-**Ready to go! Visit your dashboard now.** 🎉
+**Ready to go!** 🎉
