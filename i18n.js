@@ -101,6 +101,7 @@ const I18N = {
     "contact.formMessage": "Message",
     "contact.formSubmit": "Send message",
     "contact.formNote": "This opens your email client with your message pre-filled.",
+    "contact.formError": "Please fill in all fields.",
 
     "terms.title": "Terms of Service",
     "terms.intro": "These terms govern your use of the platform and dashboard.",
@@ -233,6 +234,7 @@ const I18N = {
     "contact.formMessage": "ข้อความ",
     "contact.formSubmit": "ส่งข้อความ",
     "contact.formNote": "การส่งจะเปิดโปรแกรมอีเมลของคุณพร้อมข้อความที่กรอกไว้ล่วงหน้า",
+    "contact.formError": "กรุณากรอกข้อมูลให้ครบทุกช่อง",
 
     "terms.title": "ข้อกำหนดการให้บริการ",
     "terms.intro": "ข้อกำหนดเหล่านี้ควบคุมการใช้แพลตฟอร์มและแดชบอร์ดของคุณ",
@@ -365,6 +367,7 @@ const I18N = {
     "contact.formMessage": "សារ",
     "contact.formSubmit": "ផ្ញើសារ",
     "contact.formNote": "ការផ្ញើនឹងបើកកម្មវិធីអ៊ីមែលរបស់អ្នកជាមួយសារដែលបានបំពេញជាមុន",
+    "contact.formError": "សូមបំពេញគ្រប់ចន្លោះទាំងអស់។",
 
     "terms.title": "លក្ខខណ្ឌនៃសេវាកម្ម",
     "terms.intro": "លក្ខខណ្ឌទាំងនេះគ្រប់គ្រងការប្រើប្រាស់វេទិកា និងផ្ទាំងគ្រប់គ្រងរបស់អ្នក",

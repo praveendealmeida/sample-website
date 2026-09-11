@@ -75,7 +75,7 @@ async function renderDashboard() {
       <div class="stat-card"><span>Total Invested</span><strong>${num(r.total_invested)}</strong><em>USDT</em></div>
       <div class="stat-card"><span>Total Profit</span><strong>${num(r.total_profit, 8)}</strong><em>USDT</em></div>
     </div>
-    <div class="panel"><h3>Recent transactions</h3><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Details</th><th>Date</th></tr></thead><tbody>${tx}</tbody></table></div>`;
+    <div class="panel"><h3>Recent transactions</h3><div class="table-wrap"><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Details</th><th>Date</th></tr></thead><tbody>${tx}</tbody></table></div></div>`;
   refreshTop();
 }
 
@@ -90,17 +90,20 @@ async function renderPlans() {
       <div class="plan-meta"><span>Min ${num(p.min_amount)}</span><span>Max ${num(p.max_amount)}</span><span>${p.duration_days} days</span></div>
       <p style="color:var(--text2);font-size:13px;margin-bottom:10px;">${esc(p.description||'')}</p>
       <div class="plan-invest"><input type="number" min="${num(p.min_amount)}" placeholder="Amount"><button class="btn btn-primary btn-sm">Invest</button></div>
+      <p class="form-error plan-msg"></p>
     </div>`).join('') + '</div>';
   document.querySelectorAll('.plan-card').forEach((card, i) => {
     const p = r.plans[i];
     const btn = card.querySelector('button');
+    const msg = card.querySelector('.plan-msg');
     btn.addEventListener('click', async () => {
       const amt = card.querySelector('input').value;
       btn.disabled = true; btn.textContent = 'Investing…';
       const res = await userPost('invest', { plan_id: p.id, amount: amt });
       btn.disabled = false; btn.textContent = 'Invest';
-      alert(res.success ? ('Invested! Daily profit: ' + num(res.investment.daily_profit, 8) + ' USDT') : (res.error || 'Failed'));
-      if (res.success) renderPlans();
+      msg.classList.toggle('success', !!res.success);
+      msg.textContent = res.success ? ('Invested! Daily profit: ' + num(res.investment.daily_profit, 8) + ' USDT') : (res.error || 'Failed');
+      if (res.success) setTimeout(renderPlans, 1200);
     });
   });
 }
@@ -108,8 +111,8 @@ async function renderPlans() {
 async function renderInvestments() {
   const r = await userGet('my_investments');
   if (!r.success || !r.investments.length) { document.getElementById('content').innerHTML = '<p class="empty">No investments yet</p>'; return; }
-  document.getElementById('content').innerHTML = '<div class="panel"><h3>My Investments</h3><table class="table"><thead><tr><th>Plan</th><th>Amount</th><th>Daily</th><th>Profit</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>' +
-    r.investments.map(x => `<tr><td>${esc(x.plan_name||x.plan_id)}</td><td>${num(x.amount)}</td><td>${num(x.daily_profit,8)}</td><td>${num(x.total_profit_accrued,8)}</td><td>${esc(x.start_date)}</td><td>${esc(x.end_date)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td></tr>`).join('') + '</tbody></table></div>';
+  document.getElementById('content').innerHTML = '<div class="panel"><h3>My Investments</h3><div class="table-wrap"><table class="table"><thead><tr><th>Plan</th><th>Amount</th><th>Daily</th><th>Profit</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>' +
+    r.investments.map(x => `<tr><td>${esc(x.plan_name||x.plan_id)}</td><td>${num(x.amount)}</td><td>${num(x.daily_profit,8)}</td><td>${num(x.total_profit_accrued,8)}</td><td>${esc(x.start_date)}</td><td>${esc(x.end_date)}</td><td><span class="badge ${esc(x.status)}">${esc(x.status)}</span></td></tr>`).join('') + '</tbody></table></div></div>';
 }
 
 let depositState = { step: 0, amount: '', network: '', networks: [], hash: '' };
@@ -136,7 +139,7 @@ async function renderWallet() {
       </div>
       <div id="depositStep"></div>
     </div>
-    <div class="panel"><h3>Deposit history</h3><table class="table"><thead><tr><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th>Date</th></tr></thead><tbody id="depHistoryBody">${histRows}</tbody></table></div>`;
+    <div class="panel"><h3>Deposit history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Network</th><th>Amount</th><th>Hash</th><th>Conf.</th><th>Status</th><th>Date</th></tr></thead><tbody id="depHistoryBody">${histRows}</tbody></table></div></div>`;
   drawDepositStep();
 }
 function drawDepositStep() {
@@ -253,7 +256,7 @@ async function renderWithdraw() {
         <button class="btn btn-accent" type="submit">Request Withdrawal</button>
       </form><p class="form-error" id="wdMsg"></p>
     </div>
-    <div class="panel"><h3>Withdrawal history</h3><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <div class="panel"><h3>Withdrawal history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const res = await userPost('request_withdrawal', { amount:document.getElementById('wdAmt').value, wallet:document.getElementById('wdWallet').value });
@@ -265,7 +268,7 @@ async function renderWithdraw() {
 async function renderTransactions() {
   const r = await userGet('transactions');
   const rows = (r.success && r.transactions.length) ? r.transactions.map(x => `<tr><td><span class="badge ${esc(x.type)}">${esc(x.type)}</span></td><td>${num(x.amount,8)}</td><td>${num(x.balance_after,8)}</td><td>${esc(x.description||'')}</td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No transactions</td></tr>';
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>Transaction history</h3><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Balance</th><th>Details</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>Transaction history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Type</th><th>Amount</th><th>Balance</th><th>Details</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 async function renderReferrals() {
@@ -279,8 +282,8 @@ async function renderReferrals() {
       <div class="stat-card"><span>Referral Earnings</span><strong>${num(r.referral_earned,8)}</strong><em>USDT</em></div>
     </div>
     <div class="panel"><h3>Your referral link</h3><div class="referral-link"><input id="refLink" value="${esc(r.referral_link)}" readonly><button class="btn btn-primary btn-sm" id="copyRef">Copy</button></div><p style="color:var(--text2);font-size:13px;">Code: <strong>${esc(r.referral_code)}</strong></p></div>
-    <div class="panel"><h3>Commission history</h3><table class="table"><thead><tr><th>From user</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${comm}</tbody></table></div>
-    <div class="panel"><h3>Referred users</h3><table class="table"><thead><tr><th>Username</th><th>Joined</th></tr></thead><tbody>${users}</tbody></table></div>`;
+    <div class="panel"><h3>Commission history</h3><div class="table-wrap"><table class="table"><thead><tr><th>From user</th><th>Level</th><th>Amount</th><th>Date</th></tr></thead><tbody>${comm}</tbody></table></div></div>
+    <div class="panel"><h3>Referred users</h3><div class="table-wrap"><table class="table"><thead><tr><th>Username</th><th>Joined</th></tr></thead><tbody>${users}</tbody></table></div></div>`;
   document.getElementById('copyRef').addEventListener('click', () => { navigator.clipboard.writeText(r.referral_link); });
 }
 
@@ -343,6 +346,6 @@ async function renderSecurity() {
 async function renderNotifications() {
   const r = await userGet('notifications');
   const rows = (r.success && r.notifications.length) ? r.notifications.map(x => `<tr><td><strong>${esc(x.title)}</strong><br><span style="color:var(--text2)">${esc(x.message||'')}</span></td><td>${x.is_read==1?'Read':'New'}</td><td>${esc(x.created_at)}</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No notifications</td></tr>';
-  document.getElementById('content').innerHTML = `<div class="panel"><h3>Notifications</h3><table class="table"><thead><tr><th>Message</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div><button class="btn btn-primary btn-sm" id="markRead">Mark all read</button>`;
+  document.getElementById('content').innerHTML = `<div class="panel"><h3>Notifications</h3><div class="table-wrap"><table class="table"><thead><tr><th>Message</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div><button class="btn btn-primary btn-sm" id="markRead">Mark all read</button>`;
   document.getElementById('markRead').addEventListener('click', async () => { await userPost('notifications_read'); renderNotifications(); });
 }
