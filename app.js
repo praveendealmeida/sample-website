@@ -6,6 +6,7 @@ let me = null;
 const SECTION_TITLES = { dashboard:'Dashboard', plans:'Investment Plans', investments:'My Investments', wallet:'Deposit', withdraw:'Withdraw', transactions:'Transactions', referrals:'Referrals', profile:'Profile & KYC', security:'Security', notifications:'Notifications' };
 
 document.addEventListener('DOMContentLoaded', init);
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
 
 async function init() {
   wireNav(); wireMenu();
@@ -39,7 +40,7 @@ async function refreshTop() {
 }
 
 async function logout() {
-  await fetch(AUTH_API + '?action=logout');
+  try { await fetch(AUTH_API + '?action=logout'); } catch (e) {}
   window.location.replace('login.html');
 }
 
@@ -58,7 +59,7 @@ function switchSection(name) {
 
 function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function num(v, dp=2) { return Number(v || 0).toFixed(dp); }
-function setErr(id, m) { const el = document.getElementById(id); if (el) el.textContent = m; }
+function setErr(id, m, success) { const el = document.getElementById(id); if (el) { el.textContent = m; el.classList.toggle('success', !!success); } }
 
 async function renderDashboard() {
   const r = await userGet('summary');
@@ -251,17 +252,22 @@ async function renderWithdraw() {
   document.getElementById('content').innerHTML = `
     <div class="panel"><h3>Withdraw</h3><p style="color:var(--text2);font-size:13px;margin-bottom:12px;">Available: <strong>${num(r.balance,8)} USDT</strong></p>
       <form id="withdrawForm" style="display:grid;gap:10px;">
-        <input id="wdAmt" type="number" placeholder="Amount (USDT)" required>
-        <input id="wdWallet" type="text" placeholder="USDT wallet address" required>
+        <label class="dlabel">Amount (USDT)</label>
+        <input id="wdAmt" type="number" min="0.01" step="0.01" placeholder="e.g. 100" required>
+        <label class="dlabel">USDT wallet address</label>
+        <input id="wdWallet" type="text" placeholder="Paste your USDT wallet address" required>
         <button class="btn btn-accent" type="submit">Request Withdrawal</button>
       </form><p class="form-error" id="wdMsg"></p>
     </div>
     <div class="panel"><h3>Withdrawal history</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Wallet</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Submitting…';
     const res = await userPost('request_withdrawal', { amount:document.getElementById('wdAmt').value, wallet:document.getElementById('wdWallet').value });
-    setErr('wdMsg', res.success ? res.message : (res.error||'Failed'));
+    setErr('wdMsg', res.success ? res.message : (res.error||'Failed'), res.success);
     if (res.success) renderWithdraw();
+    else { btn.disabled = false; btn.textContent = 'Request Withdrawal'; }
   });
 }
 
@@ -310,19 +316,25 @@ async function renderProfile() {
     </div>`;
   document.getElementById('walletForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Saving…';
     const res = await userPost('update_profile', { wallet: document.getElementById('walletAddr').value });
-    setErr('walletMsg', res.success ? 'Saved' : (res.error||'Failed'));
+    btn.disabled = false; btn.textContent = 'Save Wallet';
+    setErr('walletMsg', res.success ? 'Saved' : (res.error||'Failed'), res.success);
   });
   document.getElementById('kycForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = document.getElementById('kycFile').files[0];
     if (!file) return;
+    const btn = e.target.querySelector('button');
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = String(reader.result).split(',')[1];
+      btn.disabled = true; btn.textContent = 'Submitting…';
       const res = await userPost('kyc_submit', { doc_type: document.getElementById('kycType').value, filename: file.name, file: base64 });
-      setErr('kycMsg', res.success ? res.message : (res.error||'Failed'));
+      setErr('kycMsg', res.success ? res.message : (res.error||'Failed'), res.success);
       if (res.success) renderProfile();
+      else { btn.disabled = false; btn.textContent = 'Submit KYC'; }
     };
     reader.readAsDataURL(file);
   });
@@ -337,8 +349,11 @@ async function renderSecurity() {
     </form><p class="form-error" id="pwMsg"></p></div>`;
   document.getElementById('pwForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Updating…';
     const res = await userPost('change_password', { old_password:document.getElementById('oldPass').value, new_password:document.getElementById('newPass').value });
-    setErr('pwMsg', res.success ? res.message : (res.error||'Failed'));
+    btn.disabled = false; btn.textContent = 'Update Password';
+    setErr('pwMsg', res.success ? res.message : (res.error||'Failed'), res.success);
     if (res.success) document.getElementById('pwForm').reset();
   });
 }
